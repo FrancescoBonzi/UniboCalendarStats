@@ -6,7 +6,7 @@ window.api.receive("fromMain", (functionName, data) => {
   document.getElementById('low-connection').style = "display: none;"
   clearInterval(interval)
   switch (functionName) {
-    case "requestDayByDay": showRequestDayByDay(data); break;
+    case "statsDayByDay": showStatsDayByDay(data); break;
     case "numUsersForCourses": showNumUsersForCourses(data); break;
     case "activeUsers": showActiveUsers(data); break;
     case "totalEnrollments": showTotalEnrollments(data); break;
@@ -25,14 +25,12 @@ interval = setInterval(function () {
 }, 500);
 
 // Send a message to the main process
-window.api.send("toMain", "getRequestsDayByDay")
-window.api.send("toMain", "getNumUsersForCourses")
-window.api.send("toMain", "getActiveUsers")
-window.api.send("toMain", "getTotalEnrollments")
+window.api.send("toMain", "getData")
 
 // Functions
-function showRequestDayByDay(data) {
-  data = JSON.parse(data)
+function showStatsDayByDay([requests, enrollments, active_users]) {
+  requests = JSON.parse(requests)
+  enrollments = JSON.parse(enrollments)
   wrapped_data = {
     datasets: [
       {
@@ -40,7 +38,21 @@ function showRequestDayByDay(data) {
         backgroundColor: "rgba(255, 99, 132, 0.5)",
         borderColor: "rgb(255, 99, 132)",
         fill: false,
-        data: data
+        data: requests
+      },
+      {
+        label: "Numero di iscritti",
+        backgroundColor: "rgb(255, 159, 64, 0.5)",
+        borderColor: "rgb(255, 159, 64)",
+        fill: false,
+        data: enrollments
+      },
+      {
+        label: "Numero di iscritti attivi",
+        backgroundColor: "rgba(75, 192, 192, 0.5)",
+        borderColor: "rgba(75, 192, 192)",
+        fill: false,
+        data: active_users
       }
     ]
   }
@@ -100,8 +112,8 @@ function showNumUsersForCourses(data) {
   })
 }
 
-function showActiveUsers([partial, total]) {
-  document.getElementById('active-users').innerHTML = "<h3>Di cui attivi oggi: " + partial + ". In totale attivi oggi: " + total + "</h3></br>"
+function showActiveUsers(count) {
+  document.getElementById('active-users').innerHTML = "<h3>Di cui attivi oggi: " + count + "</h3></br>"
 }
 
 function showTotalEnrollments(data) {

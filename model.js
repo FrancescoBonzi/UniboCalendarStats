@@ -76,50 +76,100 @@ async function downloadData() {
   console.log('Data Downloaded at ' + new Date())
 }
 
-async function getRequestsDayByDay(window) {
+async function getData(window) {
 
-  // Check if data frame are populated, else download data from website
+  // Check if dataframe are populated, else download data from website
   while (df_ical === undefined || df_enrollments === undefined) {
     await downloadData()
   }
 
+  // Cast of Date format
+  df_ical = df_ical.map(row => row.set('date',
+    new Date(
+      row.get('date').split('/')[2],
+      row.get('date').split('/')[1] - 1,
+      row.get('date').split('/')[0]))
+  )
+
+  df_enrollments = df_enrollments.map(row => row.set('date',
+    new Date(
+      row.get('date').split('/')[2],
+      row.get('date').split('/')[1] - 1,
+      row.get('date').split('/')[0]))
+  )
+
+  // Call functions for client
+  getActiveUsers(window, new Date())
+  getStatsDayByDay(window)
+  getNumUsersForCourses(window)
+  getTotalEnrollments(window)
+
+}
+
+function getStatsDayByDay(window) {
+  let data = []
+  data.push(getRequestsDayByDay())
+  data.push(getNumEnrollmentsDayByDay())
+  data.push(getActiveUsersDayByDay())
+
+  window.webContents.send("fromMain", "statsDayByDay", data)
+}
+
+function getRequestsDayByDay() {
   let df = df_ical.groupBy('date');
   df = df.aggregate(group => group.count()).rename('aggregation', 'y')
   df = df.rename('date', 'x')
-  df = df.map(row => row.set('x',
-    new Date(
-      row.get('x').split('/')[2],
-      row.get('x').split('/')[1] - 1,
-      row.get('x').split('/')[0]))
-  )
-  let data = JSON.stringify(df.toCollection())
-  window.webContents.send("fromMain", "requestDayByDay", data)
+
+  return JSON.stringify(df.toCollection())
 }
 
-async function getActiveUsers(window) {
-
-  // Check if data frame are populated, else download data from website
-  while (df_ical === undefined || df_enrollments === undefined) {
-    await downloadData()
+function getNumEnrollmentsDayByDay() {
+  // Select only the enrollments from the official website
+  let df = df_enrollments.filter(row => row.get('uuid').length == 36)
+  df = df.groupBy('date');
+  // I suppose that each line contains a different uuid
+  df = df.aggregate(group => group.count()).rename('aggregation', 'y')
+  df = df.rename('date', 'x')
+  let enrollments = df.toCollection()
+  let result = [enrollments[0]]
+  for(let i=1;i<enrollments.length;i++) {
+    result[i] = {x:enrollments[i].x, y:enrollments[i].y+result[i-1].y}
   }
 
+  return JSON.stringify(result)
+}
+
+function getActiveUsersDayByDay() {
+  let result = []
   let dfe = df_enrollments.filter(row => row.get('uuid').length == 36).unique('uuid')
-  let today = df_ical.tail(1).select('date').toArray()[0]
-  let count_total = df_ical.filter(row => row.get('date') == today).unique('uuid').count()
   let dfi = df_ical.filter(row => row.get('uuid').length == 36)
-  dfi = dfi.filter(row => row.get('date') == today)
-  let count_partial = dfi.join(dfe, 'uuid', 'left').unique('uuid').count()
-
-  window.webContents.send("fromMain", "activeUsers", [count_partial, count_total])
+  let start_day = new Date(dfi.getRow(0).get('date'))
+  let end_day = new Date()
+  let date = start_day
+  while(!sameDay(date, end_day)) {
+    let df = dfi.filter(row => sameDay(new Date(row.get('date')), date))
+    result.push({x:date, y:df.join(dfe, 'uuid', 'left').unique('uuid').count()})
+    date = new Date(date.setDate(date.getDate() + 1))
+  }
+  return result
 }
 
-async function getNumUsersForCourses(window) {
+function sameDay(d1, d2) {
+  return d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate();
+}
 
-  // Check if data frame are populated, else download data from website
-  while (df_ical === undefined || df_enrollments === undefined) {
-    await downloadData()
-  }
+function getActiveUsers(window, date) {
+  let dfe = df_enrollments.filter(row => row.get('uuid').length == 36).unique('uuid')
+  let dfi = df_ical.filter(row => row.get('uuid').length == 36)
+  dfi = dfi.filter(row => sameDay(new Date(row.get('date')), date))
+  let count = dfi.join(dfe, 'uuid', 'left').unique('uuid').count()
 
+  window.webContents.send("fromMain", "activeUsers", count)
+}
+
+function getNumUsersForCourses(window) {
   let df = df_enrollments.filter(row => row.get('uuid').length == 36)
   df = df.groupBy('course');
   df = df.aggregate(group => group.count()).rename('aggregation', 'y')
@@ -129,29 +179,15 @@ async function getNumUsersForCourses(window) {
   window.webContents.send("fromMain", "numUsersForCourses", data)
 }
 
-async function getNumRequestsForUsers(window) {
-
-  // Check if data frame are populated, else download data from website
-  while (df_ical === undefined || df_enrollments === undefined) {
-    await downloadData()
-  }
-
+function getNumRequestsForUsers(window) {
   // TO-DO!
 }
 
-async function getTotalEnrollments(window) {
-
-  // Check if data frame are populated, else download data from website
-  while (df_ical === undefined || df_enrollments === undefined) {
-    await downloadData()
-  }
-
+function getTotalEnrollments(window) {
   let count = df_enrollments.filter(row => row.get('uuid').length == 36).count()
+
   window.webContents.send("fromMain", "totalEnrollments", count)
 }
 
 module.exports.downloadData = downloadData
-module.exports.getRequestsDayByDay = getRequestsDayByDay
-module.exports.getNumUsersForCourses = getNumUsersForCourses
-module.exports.getActiveUsers = getActiveUsers
-module.exports.getTotalEnrollments = getTotalEnrollments
+module.exports.getData = getData

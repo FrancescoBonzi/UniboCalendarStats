@@ -75,10 +75,7 @@ app.on('window-all-closed', function () {
 
 ipcMain.on("toMain", (event, args) => {
   switch(args) {
-    case "getRequestsDayByDay": model.getRequestsDayByDay(window); break;
-    case "getNumUsersForCourses": model.getNumUsersForCourses(window); break;
-    case "getActiveUsers": model.getActiveUsers(window); break;
-    case "getTotalEnrollments": model.getTotalEnrollments(window); break;
+    case "getData": model.getData(window); break;
     default: console.log("Not supported function!")
   }
 });
