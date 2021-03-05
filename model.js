@@ -172,7 +172,7 @@ async function getUAStats(window) {
   let query = "SELECT user_agent, COUNT(*) as users FROM hits GROUP BY user_agent;";
   let results = await runQuery(query, []);
 
-  window.webContents.send("fromMain", "totalEnrollments", results);
+  window.webContents.send("fromMain", "userAgents", results);
 }
 
 module.exports.downloadData = downloadData
