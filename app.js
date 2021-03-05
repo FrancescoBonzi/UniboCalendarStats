@@ -73,9 +73,9 @@ app.on('window-all-closed', function () {
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.
 
-ipcMain.on("toMain", (event, args) => {
+ipcMain.on("toMain", async (event, args) => {
   switch(args) {
-    case "getData": model.getData(window); break;
+    case "getData": await model.getData(window); break;
     default: console.log("Not supported function!")
   }
 });

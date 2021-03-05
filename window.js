@@ -10,7 +10,7 @@ window.api.receive("fromMain", (functionName, data) => {
     case "numUsersForCourses": showNumUsersForCourses(data); break;
     case "activeUsers": showActiveUsers(data); break;
     case "totalEnrollments": showTotalEnrollments(data); break;
-    default: console.log("Not supported response!")
+    default: console.log("Unsupported response!")
   }
 })
 
@@ -29,7 +29,7 @@ window.api.send("toMain", "getData")
 
 // Functions
 function showStatsDayByDay([requests, enrollments, active_users]) {
-  requests = JSON.parse(requests)
+  requests = JSON.parse(requests);
   enrollments = JSON.parse(enrollments)
   wrapped_data = {
     datasets: [
@@ -76,6 +76,7 @@ function showStatsDayByDay([requests, enrollments, active_users]) {
 function showNumUsersForCourses(data) {
 
   data = JSON.parse(data)
+  console.error(data);
 
   let wrapped_data = {
     labels: data["x"],

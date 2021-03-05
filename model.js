@@ -42,7 +42,7 @@ function castToArray(text) {
 async function downloadData() {
   let db_url = root_url + db_file;
   let db_filename = os.tmpdir() + new Date().getTime().toString() + "_unibocal.db";
-  let db_data = await fetch(db_url).buffer();
+  let db_data = await fetch(db_url).then(x => x.buffer());
   fs.writeFileSync(db_filename, db_data);
   db = new sqlite3.Database(db_filename);
 
@@ -53,16 +53,17 @@ async function getData(window) {
 
   // Check if dataframe are populated, else download data from website
   /*
-  I do not do this anymore, cause I don't think it's needed
-  while (df_ical === undefined || df_enrollments === undefined) {
-    await downloadData()
-  }*/
+  I do not do this anymore, cause I don't think it's needed*/
+  while (db === null) {
+    console.error("WAIT");
+    //await downloadData()
+  }
 
   // Call functions for client
-  getActiveUsers(window, new Date())
-  getStatsDayByDay(window)
-  getNumUsersForCourses(window)
-  getTotalEnrollments(window)
+  await getActiveUsers(window, new Date())
+  await getStatsDayByDay(window)
+  await getNumUsersForCourses(window)
+  await getTotalEnrollments(window)
 
 }
 
@@ -78,79 +79,82 @@ async function runQuery(q, p) {
   })
 }
 
-function getStatsDayByDay(window) {
+async function getStatsDayByDay(window) {
   let data = []
-  data.push(getRequestsDayByDay())
-  data.push(getNumEnrollmentsDayByDay())
-  data.push(getActiveUsersDayByDay())
+  data.push(await getRequestsDayByDay())
+  data.push(await getNumEnrollmentsDayByDay())
+  data.push(await getActiveUsersDayByDay())
 
   window.webContents.send("fromMain", "statsDayByDay", data)
 }
 
-function getRequestsDayByDay() {
-  let df = df_ical.groupBy('date');
-  df = df.aggregate(group => group.count()).rename('aggregation', 'y')
-  df = df.rename('date', 'x')
+async function getRequestsDayByDay() {
+  let query = "SELECT COUNT(*) AS n, (date/86400000) AS day, date FROM hits GROUP BY day ORDER BY day;";
+  let db_result = await runQuery(query, []);
+  let result = [];
+  for(const i of db_result) {
+    result.push({x: new Date(i.date), y: i.n});
+  }
 
-  return JSON.stringify(df.toCollection())
+  return JSON.stringify(result);
 }
 
-function getNumEnrollmentsDayByDay() {
-  // Select only the enrollments from the official website
-  let df = df_enrollments.filter(row => row.get('uuid').length == 36)
-  df = df.groupBy('date');
-  // I suppose that each line contains a different uuid
-  df = df.aggregate(group => group.count()).rename('aggregation', 'y')
-  df = df.rename('date', 'x')
-  let enrollments = df.toCollection()
-  let result = [enrollments[0]]
-  for (let i = 1; i < enrollments.length; i++) {
-    result[i] = { x: enrollments[i].x, y: enrollments[i].y + result[i - 1].y }
+async function getNumEnrollmentsDayByDay() {
+  //86_400_000 = a day
+  let query = "SELECT COUNT(*) AS n, (date/86400000) AS day, date FROM enrollments GROUP BY day ORDER BY day;";
+  let db_result = await runQuery(query, []);
+  let result = [];
+  for(const i of db_result) {
+    if(result.length == 0) {
+      result.push({x: new Date(i.date), y: i.n});
+    } else {
+      result.push({x: new Date(i.date), y: i.n + result[result.length - 1].y});
+    }
   }
 
   return JSON.stringify(result)
 }
 
-function getActiveUsersDayByDay() {
+async function getActiveUsersDayByDay() {
+  let query = "SELECT date, count(*) AS n FROM (SELECT date, enrollment_id, date/86400000 as d FROM hits where length(enrollment_id) = 36 group by d, enrollment_id) GROUP BY d;";
+  let db_result = await runQuery(query, []);
   let result = []
-  let dfe = df_enrollments.filter(row => row.get('uuid').length == 36).unique('uuid')
-  let dfi = df_ical.filter(row => row.get('uuid').length == 36)
-  let start_day = new Date(dfi.getRow(0).get('date'))
-  let end_day = new Date()
-  let date = start_day
-  while (!sameDay(date, end_day)) {
-    let df = dfi.filter(row => sameDay(new Date(row.get('date')), date))
-    result.push({ x: date, y: df.join(dfe, 'uuid', 'left').unique('uuid').count() })
-    date = new Date(date.setDate(date.getDate() + 1))
+  for(const i of db_result) {
+    result.push({x: new Date(i.date), y: i.n});
   }
   return result
 }
 
 function sameDay(d1, d2) {
-  return d1.getFullYear() === d2.getFullYear() &&
-    d1.getMonth() === d2.getMonth() &&
-    d1.getDate() === d2.getDate();
+  return false;
+  //return d1.getFullYear() === d2.getFullYear() &&
+  //  d1.getMonth() === d2.getMonth() &&
+  //  d1.getDate() === d2.getDate();
 }
 
-function getActiveUsers(window, date) {
-  let query = "SELECT COUNT(*) as users FROM hits WHERE date = ? GROUP BY enrollment_id;";
-  let dfe = df_enrollments.filter(row => row.get('uuid').length == 36).unique('uuid')
-  let dfi = df_ical.filter(row => row.get('uuid').length == 36)
-  dfi = dfi.filter(row => sameDay(new Date(row.get('date')), date))
-  let count = dfi.join(dfe, 'uuid', 'left').unique('uuid').count()
+async function getActiveUsers(window, date) {
+  date.setHours(0);
+  date.setMinutes(0);
+  date.setSeconds(0);
+  date.setMilliseconds(0);
+  date = (date.getTime()/86400000).toFixed(0).toString();
+  console.error(date);
+  let query = "SELECT COUNT(*) as users FROM (SELECT DISTINCT enrollment_id FROM hits WHERE date/86400000 = " + date + ");";
+  let results = await runQuery(query, []);
+  let count = results[0].users;
 
   window.webContents.send("fromMain", "activeUsers", count)
 }
 
-function getNumUsersForCourses(window) {
-  let query = "SELECT COUNT(*) as users FROM enrollments GROUP BY course;";
-  let df = df_enrollments.filter(row => row.get('uuid').length == 36)
-  df = df.groupBy('course');
-  df = df.aggregate(group => group.count()).rename('aggregation', 'y')
-  df = df.rename('course', 'x').sortBy('y', true).head(8)
-
-  let data = JSON.stringify(df.toDict())
-  window.webContents.send("fromMain", "numUsersForCourses", data)
+async function getNumUsersForCourses(window) {
+  let query = "SELECT course AS x, COUNT(*) as y FROM enrollments GROUP BY course ORDER BY y DESC LIMIT 10;";
+  let results = await runQuery(query, []);
+  let data = {x: [], y: []};
+  for(const row of results) {
+    data.x.push(row.x);
+    data.y.push(row.y);
+  }
+  window.webContents.send("fromMain", "numUsersForCourses", JSON.stringify(data))
 }
 
 function getNumRequestsForUsers(window) {
@@ -158,9 +162,10 @@ function getNumRequestsForUsers(window) {
   // TO-DO!
 }
 
-function getTotalEnrollments(window) {
+async function getTotalEnrollments(window) {
   let query = "SELECT COUNT(*) as users FROM enrollments;";
-  let count = df_enrollments.filter(row => row.get('uuid').length == 36).count()
+  let result = await runQuery(query, []);
+  let count = result[0].users;
 
   window.webContents.send("fromMain", "totalEnrollments", count)
 }
@@ -176,7 +181,7 @@ async function getUAStats(window) {
 }
 
 async function getUAAvgRequests(window) {
-  let query = "SELECT ua, AVG(requests) AS reqs FROM (SELECT user_agent AS ua, enrollment_id, COUNT(*) AS requests FROM hits GROUP BY user_agent, enrollment_id) GROUP BY ua;";
+  let query = "SELECT ua, AVG(rpd) AS reqs FROM (SELECT ua, enrollment_id, SUM(requests) / COUNT(*) as rpd FROM (SELECT user_agent AS ua, enrollment_id, date/86400000 as day, COUNT(*) AS requests FROM hits  GROUP BY user_agent, enrollment_id, day) GROUP BY ua, enrollment_id;) GROUP BY ua;";
   let results = await runQuery(query, []);
 
   window.webContents.send("fromMain", "userAgentAvgReqs", results);
