@@ -1,13 +1,13 @@
 const fetch = require('node-fetch')
-const DataFrame = require('dataframe-js').DataFrame;
+const sqlite3 = require('sqlite3');
 const parse = require('csv-parse')
+const os = require('os');
+const fs = require('fs');
 
 const root_url = 'http://unibocalendar.duckdns.org/'
-const enrollments_file = 'enrollments.csv'
-const ical_file = 'iCal.csv'
+const db_file = 'data.db'
 
-let df_enrollments = undefined
-let df_ical = undefined
+let db = null;
 
 function castToArray(text) {
 
@@ -17,7 +17,7 @@ function castToArray(text) {
   const parser = parse({
     delimiter: '\n'
   })
-  
+
   parser.on('readable', function () {
     let record
     while (record = parser.read()) {
@@ -40,38 +40,11 @@ function castToArray(text) {
 }
 
 async function downloadData() {
-  let ical_url = root_url + ical_file
-  let enrollments_url = root_url + enrollments_file
-
-  // Download enrollments.csv
-  df_enrollments = await fetch(enrollments_url).then(x => x.text())
-    .then(function (text) {
-
-      let data = castToArray(text)
-      let df = new DataFrame(data, ['date', 'hour', 'uuid', 'type', 'course', 'year', 'curriculum'])
-      //df.show()
-      return df
-
-    })
-    .catch(function (err) {
-      console.log(err);
-      return undefined
-    });
-
-  // Download iCal.csv
-  df_ical = await fetch(ical_url).then(x => x.text())
-    .then(function (text) {
-
-      let data = castToArray(text)
-      let df = new DataFrame(data, ['date', 'hour', 'uuid'])
-      //df.show()
-      return df
-
-    })
-    .catch(function (err) {
-      console.log(err);
-      return undefined
-    });
+  let db_url = root_url + db_file;
+  let db_filename = os.tmpdir() + new Date().getTime().toString() + "_unibocal.db";
+  let db_data = await fetch(db_url).buffer();
+  fs.writeFileSync(db_filename, db_data);
+  db = new sqlite3.Database(db_filename);
 
   console.log('Data Downloaded at ' + new Date())
 }
@@ -79,24 +52,11 @@ async function downloadData() {
 async function getData(window) {
 
   // Check if dataframe are populated, else download data from website
+  /*
+  I do not do this anymore, cause I don't think it's needed
   while (df_ical === undefined || df_enrollments === undefined) {
     await downloadData()
-  }
-
-  // Cast of Date format
-  df_ical = df_ical.map(row => row.set('date',
-    new Date(
-      row.get('date').split('/')[2],
-      row.get('date').split('/')[1] - 1,
-      row.get('date').split('/')[0]))
-  )
-
-  df_enrollments = df_enrollments.map(row => row.set('date',
-    new Date(
-      row.get('date').split('/')[2],
-      row.get('date').split('/')[1] - 1,
-      row.get('date').split('/')[0]))
-  )
+  }*/
 
   // Call functions for client
   getActiveUsers(window, new Date())
@@ -104,6 +64,18 @@ async function getData(window) {
   getNumUsersForCourses(window)
   getTotalEnrollments(window)
 
+}
+
+async function runQuery(q, p) {
+  return new Promise((res, rej) => {
+    db.all(q, p, function (e, r) {
+      if (e !== null) {
+        rej(e);
+      } else {
+        res(r);
+      }
+    })
+  })
 }
 
 function getStatsDayByDay(window) {
@@ -132,8 +104,8 @@ function getNumEnrollmentsDayByDay() {
   df = df.rename('date', 'x')
   let enrollments = df.toCollection()
   let result = [enrollments[0]]
-  for(let i=1;i<enrollments.length;i++) {
-    result[i] = {x:enrollments[i].x, y:enrollments[i].y+result[i-1].y}
+  for (let i = 1; i < enrollments.length; i++) {
+    result[i] = { x: enrollments[i].x, y: enrollments[i].y + result[i - 1].y }
   }
 
   return JSON.stringify(result)
@@ -146,9 +118,9 @@ function getActiveUsersDayByDay() {
   let start_day = new Date(dfi.getRow(0).get('date'))
   let end_day = new Date()
   let date = start_day
-  while(!sameDay(date, end_day)) {
+  while (!sameDay(date, end_day)) {
     let df = dfi.filter(row => sameDay(new Date(row.get('date')), date))
-    result.push({x:date, y:df.join(dfe, 'uuid', 'left').unique('uuid').count()})
+    result.push({ x: date, y: df.join(dfe, 'uuid', 'left').unique('uuid').count() })
     date = new Date(date.setDate(date.getDate() + 1))
   }
   return result
@@ -161,6 +133,7 @@ function sameDay(d1, d2) {
 }
 
 function getActiveUsers(window, date) {
+  let query = "SELECT COUNT(*) as users FROM hits WHERE date = ? GROUP BY enrollment_id;";
   let dfe = df_enrollments.filter(row => row.get('uuid').length == 36).unique('uuid')
   let dfi = df_ical.filter(row => row.get('uuid').length == 36)
   dfi = dfi.filter(row => sameDay(new Date(row.get('date')), date))
@@ -170,6 +143,7 @@ function getActiveUsers(window, date) {
 }
 
 function getNumUsersForCourses(window) {
+  let query = "SELECT COUNT(*) as users FROM enrollments GROUP BY course;";
   let df = df_enrollments.filter(row => row.get('uuid').length == 36)
   df = df.groupBy('course');
   df = df.aggregate(group => group.count()).rename('aggregation', 'y')
@@ -180,13 +154,25 @@ function getNumUsersForCourses(window) {
 }
 
 function getNumRequestsForUsers(window) {
+  let query = "SELECT COUNT(*) as requests FROM hits GROUP BY enrollment_id;";
   // TO-DO!
 }
 
 function getTotalEnrollments(window) {
+  let query = "SELECT COUNT(*) as users FROM enrollments;";
   let count = df_enrollments.filter(row => row.get('uuid').length == 36).count()
 
   window.webContents.send("fromMain", "totalEnrollments", count)
+}
+
+/*
+This is an example you can use to learn how to call queries
+*/
+async function getUAStats(window) {
+  let query = "SELECT user_agent, COUNT(*) as users FROM hits GROUP BY user_agent;";
+  let results = await runQuery(query, []);
+
+  window.webContents.send("fromMain", "totalEnrollments", results);
 }
 
 module.exports.downloadData = downloadData

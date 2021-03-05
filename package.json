@@ -26,7 +26,8 @@
     "dataframe-js": "^1.4.4",
     "electron-squirrel-startup": "^1.0.0",
     "node-fetch": "^2.6.1",
-    "papaparse": "^5.3.0"
+    "papaparse": "^5.3.0",
+    "sqlite3": "^5.0.2"
   },
   "config": {
     "forge": {
