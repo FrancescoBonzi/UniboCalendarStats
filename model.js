@@ -175,5 +175,12 @@ async function getUAStats(window) {
   window.webContents.send("fromMain", "userAgents", results);
 }
 
+async function getUAAvgRequests(window) {
+  let query = "SELECT ua, AVG(requests) AS reqs FROM (SELECT user_agent AS ua, enrollment_id, COUNT(*) AS requests FROM hits GROUP BY user_agent, enrollment_id) GROUP BY ua;";
+  let results = await runQuery(query, []);
+
+  window.webContents.send("fromMain", "userAgentAvgReqs", results);
+}
+
 module.exports.downloadData = downloadData
 module.exports.getData = getData
