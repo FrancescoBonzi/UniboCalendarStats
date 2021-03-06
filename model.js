@@ -63,8 +63,8 @@ async function getRequestsDayByDay() {
   let query = "SELECT COUNT(*) AS n, (date/86400000) AS day, date FROM hits GROUP BY day ORDER BY day;";
   let db_result = await runQuery(query, []);
   let result = [];
-  for(const i of db_result) {
-    result.push({x: new Date(i.date), y: i.n});
+  for (const i of db_result) {
+    result.push({ x: new Date(i.date), y: i.n });
   }
 
   return JSON.stringify(result);
@@ -75,11 +75,11 @@ async function getNumEnrollmentsDayByDay() {
   let query = "SELECT COUNT(*) AS n, (date/86400000) AS day, date FROM enrollments GROUP BY day ORDER BY day;";
   let db_result = await runQuery(query, []);
   let result = [];
-  for(const i of db_result) {
-    if(result.length == 0) {
-      result.push({x: new Date(i.date), y: i.n});
+  for (const i of db_result) {
+    if (result.length == 0) {
+      result.push({ x: new Date(i.date), y: i.n });
     } else {
-      result.push({x: new Date(i.date), y: i.n + result[result.length - 1].y});
+      result.push({ x: new Date(i.date), y: i.n + result[result.length - 1].y });
     }
   }
 
@@ -90,8 +90,8 @@ async function getActiveUsersDayByDay() {
   let query = "SELECT date, count(*) AS n FROM (SELECT date, enrollment_id, date/86400000 as d FROM hits where length(enrollment_id) = 36 group by d, enrollment_id) GROUP BY d;";
   let db_result = await runQuery(query, []);
   let result = []
-  for(const i of db_result) {
-    result.push({x: new Date(i.date), y: i.n});
+  for (const i of db_result) {
+    result.push({ x: new Date(i.date), y: i.n });
   }
   return result
 }
@@ -108,7 +108,7 @@ async function getActiveUsers(window, date) {
   date.setMinutes(0);
   date.setSeconds(0);
   date.setMilliseconds(0);
-  date = (date.getTime()/86400000).toFixed(0).toString();
+  date = (date.getTime() / 86400000).toFixed(0).toString();
   console.error(date);
   let query = "SELECT COUNT(*) as users FROM (SELECT DISTINCT enrollment_id FROM hits WHERE date/86400000 = " + date + ");";
   let results = await runQuery(query, []);
@@ -120,8 +120,8 @@ async function getActiveUsers(window, date) {
 async function getNumUsersForCourses(window) {
   let query = "SELECT course AS x, COUNT(*) as y FROM enrollments GROUP BY course ORDER BY y DESC LIMIT 10;";
   let results = await runQuery(query, []);
-  let data = {x: [], y: []};
-  for(const row of results) {
+  let data = { x: [], y: [] };
+  for (const row of results) {
     data.x.push(row.x);
     data.y.push(row.y);
   }
@@ -152,7 +152,7 @@ async function getUAStats(window) {
 }
 
 async function getUAAvgRequests(window) {
-  let query = "SELECT ua, AVG(rpd) AS reqs FROM (SELECT ua, enrollment_id, SUM(requests) / COUNT(*) as rpd FROM (SELECT user_agent AS ua, enrollment_id, date/86400000 as day, COUNT(*) AS requests FROM hits  GROUP BY user_agent, enrollment_id, day) GROUP BY ua, enrollment_id;) GROUP BY ua;";
+  let query = "SELECT ua, AVG(rpd) AS reqs FROM (SELECT ua, enrollment_id, SUM(requests) / COUNT(*) as rpd FROM (SELECT user_agent AS ua, enrollment_id, date/86400000 as day, COUNT(*) AS requests FROM hits  GROUP BY user_agent, enrollment_id, day) GROUP BY ua, enrollment_id) GROUP BY ua;";
   let results = await runQuery(query, []);
 
   window.webContents.send("fromMain", "userAgentAvgReqs", results);
