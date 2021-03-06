@@ -3,41 +3,12 @@ const sqlite3 = require('sqlite3');
 const parse = require('csv-parse')
 const os = require('os');
 const fs = require('fs');
+const { exit } = require('process');
 
 const root_url = 'http://unibocalendar.duckdns.org/'
 const db_file = 'data.db'
 
 let db = null;
-
-function castToArray(text) {
-
-  let output = []
-
-  // Create the parser
-  const parser = parse({
-    delimiter: '\n'
-  })
-
-  parser.on('readable', function () {
-    let record
-    while (record = parser.read()) {
-      output.push(record.toString().split(','))
-    }
-  })
-  parser.on('error', function (err) {
-    console.error(err.message)
-  })
-  parser.on('end', function () {
-    //console.log('EOF reached')
-  })
-
-  // Write data to the stream
-  parser.write(text)
-  // Close the readable stream
-  parser.end()
-
-  return output
-}
 
 async function downloadData() {
   let db_url = root_url + db_file;
@@ -54,9 +25,9 @@ async function getData(window) {
   // Check if dataframe are populated, else download data from website
   /*
   I do not do this anymore, cause I don't think it's needed*/
-  while (db === null) {
-    console.error("WAIT");
-    //await downloadData()
+  if (db === null) {
+    console.error("Error in downloading data.");
+    exit();
   }
 
   // Call functions for client
