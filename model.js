@@ -158,5 +158,13 @@ async function getUAAvgRequests(window) {
   window.webContents.send("fromMain", "userAgentAvgReqs", results);
 }
 
+async function getTodayEnrollments(window) {
+  let today = (new Date().getTime() / 86400000).toFixed(0).toString();
+  let query = "SELECT * FROM enrollments WHERE date / 86400000 = " + today;
+  let results = await runQuery(query, []);
+
+  window.webContents.send("fromMain", "userAgentAvgReqs", results);
+}
+
 module.exports.downloadData = downloadData
 module.exports.getData = getData
