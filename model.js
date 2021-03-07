@@ -121,9 +121,12 @@ async function getNumUsersForCourses(window) {
   window.webContents.send("fromMain", "numUsersForCourses", JSON.stringify(data))
 }
 
-function getNumRequestsForUsers(window) {
+async function getNumRequestsForUsers(window) {
   let query = "SELECT COUNT(*) as requests FROM hits GROUP BY enrollment_id;";
-  // TO-DO!
+  let result = await runQuery(query, []);
+  let count = result[0].users;
+  
+  window.webContents.send("fromMain", "numRequestsForUsers", count);
 }
 
 async function getTotalEnrollments(window) {
