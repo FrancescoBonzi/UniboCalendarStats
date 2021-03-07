@@ -96,13 +96,6 @@ async function getActiveUsersDayByDay() {
   return result
 }
 
-function sameDay(d1, d2) {
-  return false;
-  //return d1.getFullYear() === d2.getFullYear() &&
-  //  d1.getMonth() === d2.getMonth() &&
-  //  d1.getDate() === d2.getDate();
-}
-
 async function getActiveUsers(window, date) {
   date.setHours(0);
   date.setMinutes(0);
@@ -189,6 +182,13 @@ async function getEnrollmentDailyRequests(window, enrollment_id) {
   }
 
   return JSON.stringify(result);
+}
+
+async function getEnrollmentUserAgents(window, enrollment_id) {
+  let query = "SELECT COUNT(*) FROM hits WHERE enrollment_id = ? GROUP BY user_agent";
+  let results = await runQuery(query, [enrollment_id]);
+
+  window.webContents.send("fromMain", "enrollmentDetails", results);
 }
 
 module.exports.downloadData = downloadData
