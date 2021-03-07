@@ -166,5 +166,13 @@ async function getTodayEnrollments(window) {
   window.webContents.send("fromMain", "userAgentAvgReqs", results);
 }
 
+async function getEnrollmentsOrderedByLastHit(window) {
+  let today = (new Date().getTime() / 86400000).toFixed(0).toString();
+  let query = "SELECT enrollment_id, MAX(date) as last_hit FROM hits GROUP BY enrollment_id ORDER BY last_hit DESC";
+  let results = await runQuery(query, []);
+
+  window.webContents.send("fromMain", "userAgentAvgReqs", results);
+}
+
 module.exports.downloadData = downloadData
 module.exports.getData = getData
