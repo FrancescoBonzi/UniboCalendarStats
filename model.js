@@ -191,5 +191,12 @@ async function getEnrollmentUserAgents(window, enrollment_id) {
   window.webContents.send("fromMain", "enrollmentDetails", results);
 }
 
+async function getEnrollmentCourses(window, enrollment_id) {
+  let query = "SELECT DISTINCT lecture_id FROM requested_lectures WHERE enrollment_id = ?";
+  let results = await runQuery(query, [enrollment_id]);
+
+  window.webContents.send("fromMain", "enrollmentDetails", results);
+}
+
 module.exports.downloadData = downloadData
 module.exports.getData = getData
