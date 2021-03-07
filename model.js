@@ -174,5 +174,12 @@ async function getEnrollmentsOrderedByLastHit(window) {
   window.webContents.send("fromMain", "userAgentAvgReqs", results);
 }
 
+async function getEnrollmentDetails(window, enrollment_id) {
+  let query = "SELECT * FROM enrollments WHERE id = ?";
+  let results = await runQuery(query, [enrollment_id]);
+
+  window.webContents.send("fromMain", "enrollmentDetails", results);
+}
+
 module.exports.downloadData = downloadData
 module.exports.getData = getData
