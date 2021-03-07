@@ -163,7 +163,7 @@ async function getTodayEnrollments(window) {
   let query = "SELECT * FROM enrollments WHERE date / 86400000 = " + today;
   let results = await runQuery(query, []);
 
-  window.webContents.send("fromMain", "userAgentAvgReqs", results);
+  window.webContents.send("fromMain", "todayEnrollments", results);
 }
 
 async function getEnrollmentsOrderedByLastHit(window) {
@@ -171,7 +171,7 @@ async function getEnrollmentsOrderedByLastHit(window) {
   let query = "SELECT enrollment_id, MAX(date) as last_hit FROM hits GROUP BY enrollment_id ORDER BY last_hit DESC";
   let results = await runQuery(query, []);
 
-  window.webContents.send("fromMain", "userAgentAvgReqs", results);
+  window.webContents.send("fromMain", "enrollmentsByLastHit", results);
 }
 
 async function getEnrollmentDetails(window, enrollment_id) {
