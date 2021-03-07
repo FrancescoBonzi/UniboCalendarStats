@@ -1,6 +1,5 @@
-const fetch = require('node-fetch')
+const fetch = require('node-fetch');
 const sqlite3 = require('sqlite3');
-const parse = require('csv-parse')
 const os = require('os');
 const fs = require('fs');
 const { exit } = require('process');
@@ -20,22 +19,34 @@ async function downloadData() {
   console.log('Data Downloaded at ' + new Date())
 }
 
-async function getData(window) {
+async function getSummary(window) {
 
-  // Check if dataframe are populated, else download data from website
-  /*
-  I do not do this anymore, cause I don't think it's needed*/
   if (db === null) {
     console.error("Error in downloading data.");
     exit();
   }
 
   // Call functions for client
+  await getActiveEnrollments(window)
   await getActiveUsers(window, new Date())
   await getStatsDayByDay(window)
   await getNumUsersForCourses(window)
   await getTotalEnrollments(window)
+}
 
+async function getInfoAboutEnrollment(window, enrollment_id) {
+
+  if (db === null) {
+    console.error("Error in downloading data.");
+    exit();
+  }
+
+  // Call functions for client
+  await getEnrollmentDetails(window, enrollment_id)
+  await getEnrollmentDailyRequests(window, enrollment_id)
+  await getEnrollmentUserAgents(window, enrollment_id)
+  await getEnrollmentCourses(window, enrollment_id)
+  await getEnrollmentFirstRequestAfter4AM(window, enrollment_id)
 }
 
 async function runQuery(q, p) {
@@ -154,6 +165,13 @@ async function getUAAvgRequests(window) {
   window.webContents.send("fromMain", "userAgentAvgReqs", results);
 }
 
+async function getActiveEnrollments(window) {
+  let query = "SELECT enrollment_id, enrollments.course AS course, counter FROM (SELECT enrollment_id, count(*) AS counter FROM hits GROUP BY enrollment_id) INNER JOIN enrollments ON enrollment_id=enrollments.id WHERE counter > 1 ORDER BY counter DESC;"
+  let results = await runQuery(query, []);
+
+  window.webContents.send("fromMain", "activeEnrollments", results);
+}
+
 async function getTodayEnrollments(window) {
   let today = (new Date().getTime() / 86400000).toFixed(0).toString();
   let query = "SELECT * FROM enrollments WHERE date / 86400000 = " + today;
@@ -209,4 +227,5 @@ async function getEnrollmentFirstRequestAfter4AM(window, enrollment_id) {
 }
 
 module.exports.downloadData = downloadData
-module.exports.getData = getData
+module.exports.getSummary = getSummary
+module.exports.getInfoAboutEnrollment = getInfoAboutEnrollment

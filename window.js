@@ -1,4 +1,3 @@
-
 let interval
 
 // Called when message received from main process
@@ -6,10 +5,20 @@ window.api.receive("fromMain", (functionName, data) => {
   document.getElementById('low-connection').style = "display: none;"
   clearInterval(interval)
   switch (functionName) {
+    // below for summary
+    case "activeEnrollments": showActiveEnrollments(data); break;
     case "statsDayByDay": showStatsDayByDay(data); break;
     case "numUsersForCourses": showNumUsersForCourses(data); break;
     case "activeUsers": showActiveUsers(data); break;
     case "totalEnrollments": showTotalEnrollments(data); break;
+
+    // below for single enrollment
+    case "enrollmentDetails": showEnrollmentDetails(data); break;
+    case "enrollmentDailyRequests": showEnrollmentDailyRequests(data); break;
+    case "enrollmentUAs": showEnrollmentUserAgents(data); break;
+    case "enrollmentLectures": showEnrollmentCourses(data); break;
+    case "enrollmentFirstRequestAfter4AM": showEnrollmentFirstRequestAfter4AM(data); break;
+
     default: console.log("Unsupported response!")
   }
 })
@@ -25,7 +34,19 @@ interval = setInterval(function () {
 }, 500);
 
 // Send a message to the main process
-window.api.send("toMain", "getData")
+window.api.send("toMain", "getSummary")
+
+function getInfoAboutEnrollment(enrollment_id) {
+  window.api.send("toMain", ["getInfoAboutEnrollment", enrollment_id])
+}
+
+function showActiveEnrollments(data) {
+  dropdown_tag = document.querySelector("[aria-labelledby='dropdownMenuButton']")
+  for(const d of data) {
+    const new_enrollment = "<a class='dropdown-item' href='#' onclick=getInfoAboutEnrollment('" + d.enrollment_id + "');>" + d.course + " - " + d.counter + "</a></br>";
+    dropdown_tag.insertAdjacentHTML('beforeend', new_enrollment);
+  }
+}
 
 // Functions
 function showStatsDayByDay([requests, enrollments, active_users]) {
@@ -114,9 +135,34 @@ function showNumUsersForCourses(data) {
 }
 
 function showActiveUsers(count) {
-  document.getElementById('active-users').innerHTML = "<h3>Di cui attivi oggi: " + count + "</h3></br>"
+  document.getElementById('active-users').innerHTML = "<p>Utenti attivi oggi: " + count + "</p>"
 }
 
 function showTotalEnrollments(data) {
-  document.getElementById("enrol-count").innerHTML = "<h2>Numero di url generati dal sito ufficiale: " + data + "</h2>"
+  document.getElementById("enrol-count").innerHTML = "<p>Link generati: " + data + "</p>"
+}
+
+
+/*
+  FOR SINGLE ENROLLMENT INFO
+*/
+
+function showEnrollmentDetails(data) {
+  console.log(data)
+}
+
+function showEnrollmentDailyRequests(data) {
+  console.log(data)
+}
+
+function showEnrollmentUserAgents(data) {
+  console.log(data)
+}
+
+function showEnrollmentCourses(data) {
+  console.log(data)
+}
+
+function showEnrollmentFirstRequestAfter4AM(data) {
+  console.log(data)
 }

@@ -74,8 +74,16 @@ app.on('window-all-closed', function () {
 // code. You can also put them in separate files and require them here.
 
 ipcMain.on("toMain", async (event, args) => {
-  switch(args) {
-    case "getData": await model.getData(window); break;
+  if(Array.isArray(args)) {
+    function_name = args[0]
+    params = args[1]
+  } else {
+    function_name = args
+    params = undefined
+  }
+  switch(function_name) {
+    case "getSummary": await model.getSummary(window); break;
+    case "getInfoAboutEnrollment": await model.getInfoAboutEnrollment(window, params); break;
     default: console.log("Not supported function!")
   }
 });
