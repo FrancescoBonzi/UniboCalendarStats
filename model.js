@@ -198,5 +198,12 @@ async function getEnrollmentCourses(window, enrollment_id) {
   window.webContents.send("fromMain", "enrollmentLectures", results);
 }
 
+async function getEnrollmentFirstRequestAfter4AM(window, enrollment_id) {
+  let query = "SELECT MIN(date) FROM hits WHERE enrollment_id = ? AND date % 86400000 >= 14400000 GROUP BY (date / 86400000)";
+  let results = await runQuery(query, [enrollment_id]);
+
+  window.webContents.send("fromMain", "enrollmentFirstRequestAfter4AM", results);
+}
+
 module.exports.downloadData = downloadData
 module.exports.getData = getData
