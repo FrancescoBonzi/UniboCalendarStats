@@ -167,7 +167,6 @@ async function getTodayEnrollments(window) {
 }
 
 async function getEnrollmentsOrderedByLastHit(window) {
-  let today = (new Date().getTime() / 86400000).toFixed(0).toString();
   let query = "SELECT enrollment_id, MAX(date) as last_hit FROM hits GROUP BY enrollment_id ORDER BY last_hit DESC";
   let results = await runQuery(query, []);
 
@@ -179,6 +178,17 @@ async function getEnrollmentDetails(window, enrollment_id) {
   let results = await runQuery(query, [enrollment_id]);
 
   window.webContents.send("fromMain", "enrollmentDetails", results);
+}
+
+async function getEnrollmentDailyRequests(window, enrollment_id) {
+  let query = "SELECT COUNT(*) AS n, (date/86400000) AS day, date FROM hits WHERE enrollment_id = ? GROUP BY day ORDER BY day;";
+  let db_result = await runQuery(query, [enrollment_id]);
+  let result = [];
+  for (const i of db_result) {
+    result.push({ x: new Date(i.date), y: i.n });
+  }
+
+  return JSON.stringify(result);
 }
 
 module.exports.downloadData = downloadData
