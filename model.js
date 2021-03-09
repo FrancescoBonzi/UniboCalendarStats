@@ -113,7 +113,6 @@ async function getActiveUsers(window, date) {
   date.setSeconds(0);
   date.setMilliseconds(0);
   date = (date.getTime() / 86400000).toFixed(0).toString();
-  console.error(date);
   let query = "SELECT COUNT(*) as users FROM (SELECT DISTINCT enrollment_id FROM hits WHERE date/86400000 = " + date + ");";
   let results = await runQuery(query, []);
   let count = results[0].users;
@@ -202,11 +201,11 @@ async function getEnrollmentDailyRequests(window, enrollment_id) {
     result.push({ x: new Date(i.date), y: i.n });
   }
 
-  return JSON.stringify(result);
+  window.webContents.send("fromMain", "enrollmentDailyRequests", JSON.stringify(result));
 }
 
 async function getEnrollmentUserAgents(window, enrollment_id) {
-  let query = "SELECT COUNT(*) FROM hits WHERE enrollment_id = ? GROUP BY user_agent";
+  let query = "SELECT user_agent, COUNT(*) AS counter FROM hits WHERE enrollment_id = ? GROUP BY user_agent";
   let results = await runQuery(query, [enrollment_id]);
 
   window.webContents.send("fromMain", "enrollmentUAs", results);
@@ -220,8 +219,18 @@ async function getEnrollmentCourses(window, enrollment_id) {
 }
 
 async function getEnrollmentFirstRequestAfter4AM(window, enrollment_id) {
-  let query = "SELECT MIN(date) FROM hits WHERE enrollment_id = ? AND date % 86400000 >= 14400000 GROUP BY (date / 86400000)";
-  let results = await runQuery(query, [enrollment_id]);
+  let query = "SELECT MIN(date) as d FROM (SELECT date FROM HITS WHERE enrollment_id = ? AND date%86400000 >= 14400000) GROUP BY (date / 86400000)";
+  let db_results = await runQuery(query, [enrollment_id]);
+  let results = [];
+  for(var i = 0; i < db_results.length; i++) {
+    let new_date = new Date(db_results[i].d);
+    let new_time = (db_results[i].d % 14400000) / 1000;
+    new_date.setHours(0);
+    new_date.setMinutes(0);
+    new_date.setSeconds(0);
+    new_date.setMilliseconds(0);
+    results.push({x: new_date, y: new_time});
+  }
 
   window.webContents.send("fromMain", "enrollmentFirstRequestAfter4AM", results);
 }

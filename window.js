@@ -1,8 +1,21 @@
-let interval
+function setLoadingMessage() {
+  let message = 'Caricamento';
+  for (i = 0; i < n; i++) {
+    message += '.';
+  }
+  document.getElementById('loading-message').innerHTML = message;
+  n = (n + 1) % 4;
+}
+
+let n = 0;
+let interval = setInterval(setLoadingMessage, 500);
+
+// Send a message to the main process
+window.api.send("toMain", "getSummary")
 
 // Called when message received from main process
 window.api.receive("fromMain", (functionName, data) => {
-  document.getElementById('low-connection').style = "display: none;"
+  document.getElementById('loading-message').style = "display: none;"
   clearInterval(interval)
   switch (functionName) {
     // below for summary
@@ -19,30 +32,21 @@ window.api.receive("fromMain", (functionName, data) => {
     case "enrollmentLectures": showEnrollmentCourses(data); break;
     case "enrollmentFirstRequestAfter4AM": showEnrollmentFirstRequestAfter4AM(data); break;
 
-    default: console.log("Unsupported response!")
+    default: console.error("Unsupported response!")
   }
 })
 
-let n = 0;
-interval = setInterval(function () {
-  let message = 'Scarico i dati';
-  for (i = 0; i < n; i++) {
-    message += '.';
-  }
-  document.getElementById('low-connection').innerHTML = message;
-  n = (n + 1) % 4;
-}, 500);
-
-// Send a message to the main process
-window.api.send("toMain", "getSummary")
-
 function getInfoAboutEnrollment(enrollment_id) {
+  document.getElementById('summary').style = "display: none;"
+  document.getElementById('loading-message').style = "display: block;"
+  n = 0;
+  interval = setInterval(setLoadingMessage, 500);
   window.api.send("toMain", ["getInfoAboutEnrollment", enrollment_id])
 }
 
 function showActiveEnrollments(data) {
   dropdown_tag = document.querySelector("[aria-labelledby='dropdownMenuButton']")
-  for(const d of data) {
+  for (const d of data) {
     const new_enrollment = "<a class='dropdown-item' href='#' onclick=getInfoAboutEnrollment('" + d.enrollment_id + "');>" + d.course + " - " + d.counter + "</a></br>";
     dropdown_tag.insertAdjacentHTML('beforeend', new_enrollment);
   }
@@ -97,7 +101,6 @@ function showStatsDayByDay([requests, enrollments, active_users]) {
 function showNumUsersForCourses(data) {
 
   data = JSON.parse(data)
-  console.error(data);
 
   let wrapped_data = {
     labels: data["x"],
@@ -112,7 +115,7 @@ function showNumUsersForCourses(data) {
       }
     ]
   }
-  console.log(wrapped_data)
+
   new Chart(document.getElementById("enrol-per-courses").getContext('2d'), {
     type: 'horizontalBar',
     data: wrapped_data,
@@ -147,22 +150,126 @@ function showTotalEnrollments(data) {
   FOR SINGLE ENROLLMENT INFO
 */
 
+function initializeChart(parent_id) {
+  var div = document.getElementById(parent_id);
+  div.innerHTML = ""
+  var canvas = document.createElement('canvas');
+  canvas.style.width = "100%"
+  canvas.style.height = "300px"
+  div.appendChild(canvas);
+  return canvas
+}
+
 function showEnrollmentDetails(data) {
-  console.log(data)
+  document.getElementById('enrol-details').innerHTML = "<h2 style='margin-top: 0.5rem;'>" + data[0].type + " in " + data[0].course + ", " + data[0].year + "^ anno</h2>"
 }
 
 function showEnrollmentDailyRequests(data) {
-  console.log(data)
+  data = JSON.parse(data);
+  wrapped_data = {
+    datasets: [
+      {
+        label: "Richieste giornaliere",
+        backgroundColor: "rgba(255, 99, 132, 0.5)",
+        borderColor: "rgb(255, 99, 132)",
+        fill: false,
+        data: data
+      }]
+  }
+
+  var canvas = initializeChart("enrol-daily-req")
+  var context = canvas.getContext('2d');
+
+  new Chart(context, {
+    type: 'line',
+    data: wrapped_data,
+    options: {
+      scales: {
+        xAxes: [{
+          type: 'time',
+          time: {
+            unit: 'week'
+          }
+        }]
+      }
+    }
+  })
 }
 
 function showEnrollmentUserAgents(data) {
-  console.log(data)
+
+  values = []
+  labels = []
+  for (const d of data) {
+    values.push(d.counter)
+    if (d.user_agent === null) {
+      labels.push('Indefinito')
+    } else {
+      labels.push(d.user_agent)
+    }
+  }
+
+  data = {
+    datasets: [{
+      data: values,
+      backgroundColor: ["rgba(255, 99, 132, 0.2)", "rgba(255, 159, 64, 0.2)", "rgba(255, 205, 86, 0.2)", "rgba(75, 192, 192, 0.2)", "rgba(54, 162, 235, 0.2)", "rgba(153, 102, 255, 0.2)", "rgba(201, 203, 207, 0.2)"]
+    }],
+    labels: labels
+  };
+
+  var canvas = initializeChart("enrol-ua")
+  var context = canvas.getContext('2d');
+
+  new Chart(context, {
+    type: 'pie',
+    data: data,
+    options: null
+  });
 }
 
 function showEnrollmentCourses(data) {
   console.log(data)
+  str = ""
+  for(var el of data) {
+    str += el.lecture_id + "\n"
+  }
+  console.log(str)
 }
 
 function showEnrollmentFirstRequestAfter4AM(data) {
-  console.log(data)
+  //data = JSON.parse(data);
+  str = ""
+  for(var el of data) {
+    str += "x: " + el.x + ", y: " + el.y + "\n"
+  }
+  //console.log(str)
+  wrapped_data = {
+    datasets: [
+      {
+        label: "Orario di risveglio",
+        backgroundColor: "rgba(75, 192, 192, 0.2)",
+        borderColor: "rgba(75, 192, 192)",
+        fill: false,
+        data: data
+      }]
+  }
+
+  var canvas = initializeChart("enrol-wake-up")
+  var context = canvas.getContext('2d');
+
+  new Chart(context, {
+    type: 'line',
+    data: wrapped_data,
+    options: {
+      scales: {
+        xAxes: [{
+          type: 'time',
+          time: {
+            unit: 'week'
+          }
+        }]
+      }
+    }
+  })
+
 }

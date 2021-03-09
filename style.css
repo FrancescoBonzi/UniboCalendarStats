@@ -1,4 +1,4 @@
-#low-connection {
+#loading-message {
     margin: auto;
     position: absolute;
     left: 50%;
@@ -9,6 +9,46 @@
     margin-top: -50px;
 }
 
+#menu {
+    display: flex;
+    height: 3rem;
+    width: 100%;
+    justify-content: space-between;
+    padding: 30px;
+    box-sizing: border-box;
+
+    margin: 0;
+    top: 50%;
+    -ms-transform: translateY(-50%);
+    transform: translateY(-50%);
+}
+
+#menu-text {
+    display: flex;
+}
+
+#menu div {
+    margin: 1rem;
+}
+
+#dropdown-menu {
+    
+}
+
+.chart-flex {
+    display: flex;
+    width: 100%;
+}
+
+#enrol-daily-req {
+    width: 70%;
+}
+
+#enrol-ua {
+    width: 30%;
+}
+
 p {
     margin: 0;
+    font-weight: bold;
 }
