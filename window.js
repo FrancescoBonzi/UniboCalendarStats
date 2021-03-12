@@ -161,7 +161,7 @@ function initializeChart(parent_id) {
 }
 
 function showEnrollmentDetails(data) {
-  document.getElementById('enrol-details').innerHTML = "<h2 style='margin-top: 0.5rem;'>" + data[0].type + " in " + data[0].course + ", " + data[0].year + "^ anno</h2>"
+  document.getElementById('enrol-details').innerHTML = "<h2 style='margin-top: 0.5rem;'>" + data[0].type + " in " + data[0].course + ", " + data[0].year + "^ anno</h2></br><p>" + data[0].id + "</p>"
 }
 
 function showEnrollmentDailyRequests(data) {
@@ -228,21 +228,14 @@ function showEnrollmentUserAgents(data) {
 }
 
 function showEnrollmentCourses(data) {
-  console.log(data)
-  str = ""
-  for(var el of data) {
-    str += el.lecture_id + "\n"
+  let html = ""
+  for(var l of data) {
+    html += "<li>" + l.materia_descrizione + " - " +  l.docente_nome + " <a href='" + l.url + "'>link</a></li></br>"
   }
-  console.log(str)
+  document.getElementById('lectures-list').innerHTML = html
 }
 
 function showEnrollmentFirstRequestAfter4AM(data) {
-  //data = JSON.parse(data);
-  str = ""
-  for(var el of data) {
-    str += "x: " + el.x + ", y: " + el.y + "\n"
-  }
-  //console.log(str)
   wrapped_data = {
     datasets: [
       {

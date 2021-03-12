@@ -11,7 +11,7 @@ let db = null;
 
 async function downloadData() {
   let db_url = root_url + db_file;
-  let db_filename = os.tmpdir() + new Date().getTime().toString() + "_unibocal.db";
+  let db_filename = os.tmpdir() + '/' + new Date().getTime().toString() + "_unibocal.db";
   let db_data = await fetch(db_url).then(x => x.buffer());
   fs.writeFileSync(db_filename, db_data);
   db = new sqlite3.Database(db_filename);
@@ -45,8 +45,8 @@ async function getInfoAboutEnrollment(window, enrollment_id) {
   await getEnrollmentDetails(window, enrollment_id)
   await getEnrollmentDailyRequests(window, enrollment_id)
   await getEnrollmentUserAgents(window, enrollment_id)
-  await getEnrollmentCourses(window, enrollment_id)
   await getEnrollmentFirstRequestAfter4AM(window, enrollment_id)
+  getEnrollmentCourses(window, enrollment_id)
 }
 
 async function runQuery(q, p) {
@@ -135,7 +135,7 @@ async function getNumRequestsForUsers(window) {
   let query = "SELECT COUNT(*) as requests FROM hits GROUP BY enrollment_id;";
   let result = await runQuery(query, []);
   let count = result[0].users;
-  
+
   window.webContents.send("fromMain", "numRequestsForUsers", count);
 }
 
@@ -211,25 +211,97 @@ async function getEnrollmentUserAgents(window, enrollment_id) {
   window.webContents.send("fromMain", "enrollmentUAs", results);
 }
 
+async function runQueryLectures(q, p) {
+  return new Promise((res, rej) => {
+    lectures_db.all(q, p, function (e, r) {
+      if (e !== null) {
+        rej(e);
+      } else {
+        res(r);
+      }
+    })
+  })
+}
+
 async function getEnrollmentCourses(window, enrollment_id) {
   let query = "SELECT DISTINCT lecture_id FROM requested_lectures WHERE enrollment_id = ?";
-  let results = await runQuery(query, [enrollment_id]);
+  let lecture_ids = await runQuery(query, [enrollment_id]);
+  query = "SELECT * FROM enrollments WHERE id = ?";
+  let enrol_info = await runQuery(query, [enrollment_id]);
 
-  window.webContents.send("fromMain", "enrollmentLectures", results);
+  const language = {
+    "magistralecu": "orario-lezioni",
+    "magistrale": "orario-lezioni",
+    "laurea": "orario-lezioni",
+    "singlecycle": "timetable",
+    "1cycle": "timetable",
+    "2cycle": "timetable"
+  }
+
+  //https://corsi.unibo.it/2cycle/artificial-intelligence/timetable/@@orario_reale_json?anno=2&calendar_view=
+  let url = ['https://corsi.unibo.it', enrol_info[0].type, enrol_info[0].course,
+    language[enrol_info[0].type], '@@orario_reale_json'].join('/')
+  url += '?anno=' + enrol_info[0].year;
+  if (enrol_info.curriculum !== undefined) {
+    url += '&curricula=' + enrol_info[0].curriculum;
+  }
+  // Adding only the selected lectures to the request
+  lectures_list = []
+  for (var l of lecture_ids) {
+    url += '&insegnamenti=' + l.lecture_id;
+    lectures_list.push(l.lecture_id)
+  }
+  url += '&calendar_view=';
+  console.log(lectures_list)
+
+  // Sending the request and parsing the response
+  let lecture_codes = await fetch(url).then(x => x.text())
+    .then(function (json) {
+      json = JSON.parse(json);
+      let lecture_codes = []
+      for (var l of json) {
+        if (lectures_list.includes(l.extCode)) {
+          lecture_codes.push(l.cod_modulo)
+        }
+      }
+      lecture_codes = [...new Set(lecture_codes)]
+      console.log(lecture_codes)
+      return lecture_codes
+    })
+    .catch(function (err) {
+      console.log(err);
+      callback("An error occurred while creating the calendar.");
+    });
+
+  lectures_db_filename = 'insegnamenti.sqlite'
+  lectures_db = new sqlite3.Database(lectures_db_filename);
+
+  query = "SELECT min(OGC_FID), * FROM insegnamentidettagli_2020_it WHERE url is not null and materia_codice in (";
+  for(var l of lecture_codes) {
+    query += '?, '
+  }
+  query = query.substr(0, query.length-2) + ") "
+  query += "group by materia_codice"
+  console.log(query)
+  let lectures_info = await runQueryLectures(query, lecture_codes);
+  console.log(lectures_info)
+
+  window.webContents.send("fromMain", "enrollmentLectures", lectures_info);
 }
 
 async function getEnrollmentFirstRequestAfter4AM(window, enrollment_id) {
-  let query = "SELECT MIN(date) as d FROM (SELECT date FROM HITS WHERE enrollment_id = ? AND date%86400000 >= 14400000) GROUP BY (date / 86400000)";
+  let query = 'SELECT MIN(date) as d FROM hits WHERE enrollment_id = ? AND CAST(strftime("%H", datetime(date/1000, "unixepoch", "localtime")) AS INTEGER) >= 4  GROUP BY strftime("%Y-%m-%d", datetime(date/1000, "unixepoch", "localtime"));';
   let db_results = await runQuery(query, [enrollment_id]);
   let results = [];
-  for(var i = 0; i < db_results.length; i++) {
+  for (var i = 0; i < db_results.length; i++) {
     let new_date = new Date(db_results[i].d);
-    let new_time = (db_results[i].d % 14400000) / 1000;
+    let new_time = (new_date.getHours() * 3600 + new_date.getMinutes() * 60 + new_date.getSeconds()) / 3600;
     new_date.setHours(0);
     new_date.setMinutes(0);
     new_date.setSeconds(0);
     new_date.setMilliseconds(0);
-    results.push({x: new_date, y: new_time});
+
+    results.push({ x: new_date, y: new_time });
   }
 
   window.webContents.send("fromMain", "enrollmentFirstRequestAfter4AM", results);
