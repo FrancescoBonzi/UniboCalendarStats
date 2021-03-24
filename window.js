@@ -41,6 +41,8 @@ function getInfoAboutEnrollment(enrollment_id) {
   document.getElementById('loading-message').style = "display: block;"
   n = 0;
   interval = setInterval(setLoadingMessage, 500);
+  document.getElementById("lectures-list").childNodes[3].innerHTML = ""
+  document.getElementById("lectures-list").style = "display: block;"
   window.api.send("toMain", ["getInfoAboutEnrollment", enrollment_id])
 }
 
@@ -229,10 +231,21 @@ function showEnrollmentUserAgents(data) {
 
 function showEnrollmentCourses(data) {
   let html = ""
+  count = 1
   for(var l of data) {
-    html += "<li>" + l.materia_descrizione + " - " +  l.docente_nome + " <a href='" + l.url + "'>link</a></li></br>"
+    html += "<tr><th scope='row'>" + count + "</th>" +
+      "<td>" + l.materia_descrizione + "</td>" +
+      "<td>" + l.docente_nome + "</td>"
+    if(l.url != "") {
+      html += "<td><a href='" + l.url + "'>link</a></td></tr>"
+    } else {
+      html += "<td><a class='disable'>not available</a></td></tr>"
+    }
+    console.log(l)
+    count += 1
   }
-  document.getElementById('lectures-list').innerHTML = html
+  document.getElementById('lectures-list').childNodes[3].innerHTML = html
+  console.log(document.getElementById('lectures-list').childNodes)
 }
 
 function showEnrollmentFirstRequestAfter4AM(data) {

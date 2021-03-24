@@ -252,12 +252,17 @@ async function getEnrollmentCourses(window, enrollment_id) {
     lectures_list.push(l.lecture_id)
   }
   url += '&calendar_view=';
-  console.log(lectures_list)
 
   // Sending the request and parsing the response
   let lecture_codes = await fetch(url).then(x => x.text())
     .then(function (json) {
-      json = JSON.parse(json);
+      try {
+        json = JSON.parse(json);
+      } catch {
+        json = []
+      }
+      console.error(url)
+      //console.log(json)
       let lecture_codes = []
       for (var l of json) {
         if (lectures_list.includes(l.extCode)) {
@@ -265,7 +270,6 @@ async function getEnrollmentCourses(window, enrollment_id) {
         }
       }
       lecture_codes = [...new Set(lecture_codes)]
-      console.log(lecture_codes)
       return lecture_codes
     })
     .catch(function (err) {
@@ -280,11 +284,12 @@ async function getEnrollmentCourses(window, enrollment_id) {
   for(var l of lecture_codes) {
     query += '?, '
   }
-  query = query.substr(0, query.length-2) + ") "
+  if(lecture_codes.length != 0) {
+    query = query.substr(0, query.length-2)
+  }
+  query += ") "
   query += "group by materia_codice"
-  console.log(query)
   let lectures_info = await runQueryLectures(query, lecture_codes);
-  console.log(lectures_info)
 
   window.webContents.send("fromMain", "enrollmentLectures", lectures_info);
 }
