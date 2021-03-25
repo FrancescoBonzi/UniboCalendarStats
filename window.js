@@ -9,6 +9,7 @@ function setLoadingMessage() {
 
 let n = 0;
 let interval = setInterval(setLoadingMessage, 500);
+document.getElementById("btn-close").addEventListener("click", closeEnrolSection);
 
 // Send a message to the main process
 window.api.send("toMain", "getSummary")
@@ -38,11 +39,13 @@ window.api.receive("fromMain", (functionName, data) => {
 
 function getInfoAboutEnrollment(enrollment_id) {
   document.getElementById('summary').style = "display: none;"
+  document.getElementById('enrollment-info').style = "display: block;"
   document.getElementById('loading-message').style = "display: block;"
   n = 0;
   interval = setInterval(setLoadingMessage, 500);
   document.getElementById("lectures-list").childNodes[3].innerHTML = ""
   document.getElementById("lectures-list").style = "display: block;"
+  document.getElementById("btn-close").style = "display: block;"
   window.api.send("toMain", ["getInfoAboutEnrollment", enrollment_id])
 }
 
@@ -52,6 +55,12 @@ function showActiveEnrollments(data) {
     const new_enrollment = "<a class='dropdown-item' href='#' onclick=getInfoAboutEnrollment('" + d.enrollment_id + "');>" + d.course + " - " + d.counter + "</a></br>";
     dropdown_tag.insertAdjacentHTML('beforeend', new_enrollment);
   }
+}
+
+function closeEnrolSection() {
+  document.getElementById("summary").style.display = "block"
+  document.getElementById("enrollment-info").style.display = "none"
+  document.getElementById("btn-close").style.display = "none"
 }
 
 // Functions

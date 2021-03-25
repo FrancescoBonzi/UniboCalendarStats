@@ -242,9 +242,7 @@ async function getEnrollmentCourses(window, enrollment_id) {
   let url = ['https://corsi.unibo.it', enrol_info[0].type, enrol_info[0].course,
     language[enrol_info[0].type], '@@orario_reale_json'].join('/')
   url += '?anno=' + enrol_info[0].year;
-  if (enrol_info.curriculum !== undefined) {
-    url += '&curricula=' + enrol_info[0].curriculum;
-  }
+  url += '&curricula=' + enrol_info[0].curriculum;
   // Adding only the selected lectures to the request
   lectures_list = []
   for (var l of lecture_ids) {
@@ -265,7 +263,7 @@ async function getEnrollmentCourses(window, enrollment_id) {
       //console.log(json)
       let lecture_codes = []
       for (var l of json) {
-        if (lectures_list.includes(l.extCode)) {
+        if (lectures_list.length == 0 || lectures_list.includes(l.extCode)) {
           lecture_codes.push(l.cod_modulo)
         }
       }
@@ -276,6 +274,8 @@ async function getEnrollmentCourses(window, enrollment_id) {
       console.log(err);
       callback("An error occurred while creating the calendar.");
     });
+
+  //console.log(lecture_codes)
 
   lectures_db_filename = 'insegnamenti.sqlite'
   lectures_db = new sqlite3.Database(lectures_db_filename);
@@ -290,6 +290,7 @@ async function getEnrollmentCourses(window, enrollment_id) {
   query += ") "
   query += "group by materia_codice"
   let lectures_info = await runQueryLectures(query, lecture_codes);
+  //console.log(lectures_info)
 
   window.webContents.send("fromMain", "enrollmentLectures", lectures_info);
 }
