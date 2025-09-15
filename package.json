@@ -2,37 +2,46 @@
   "name": "UniboCalendarStats",
   "productName": "Unibo Calendar Stats",
   "version": "1.0.0",
-  "description": "Prices of commodities",
+  "description": "Statistical analysis and visualization of Unibo Calendar usage data",
   "repository": "electron/simple-samples",
   "main": "app.js",
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
-    "build": "electron-packager . --overwrite --platform=darwin --arch=x64 --icon=./icon.icns --prune=true --out=out"
+    "build": "electron-packager . --overwrite --platform=darwin --arch=x64 --icon=./icon.icns --prune=true --out=out",
+    "audit-fix": "npm audit fix",
+    "clean": "rm -rf node_modules package-lock.json && npm install"
   },
   "license": "ISC",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
   "devDependencies": {
-    "@electron-forge/cli": "^6.4.2",
-    "@electron-forge/maker-deb": "^6.4.2",
-    "@electron-forge/maker-rpm": "^6.4.2",
-    "@electron-forge/maker-squirrel": "^6.4.2",
-    "@electron-forge/maker-zip": "^6.4.2",
-    "electron": "^11.3.0",
-    "electron-packager": "^15.1.0"
+    "@electron-forge/cli": "^7.2.0",
+    "@electron-forge/maker-deb": "^7.2.0",
+    "@electron-forge/maker-dmg": "^7.2.0",
+    "@electron-forge/maker-rpm": "^7.2.0",
+    "@electron-forge/maker-squirrel": "^7.2.0",
+    "@electron-forge/maker-zip": "^7.2.0",
+    "electron": "^28.2.0",
+    "electron-packager": "^17.1.1"
   },
   "dependencies": {
-    "@electron-forge/maker-dmg": "^6.4.2",
-    "csv-parse": "^4.14.1",
+    "csv-parse": "^5.5.2",
     "dataframe-js": "^1.4.4",
+    "dotenv": "^16.3.1",
     "electron-squirrel-startup": "^1.0.0",
-    "node-fetch": "^2.6.1",
-    "papaparse": "^5.3.0",
-    "sqlite3": "5.1.7"
+    "node-fetch": "^3.3.2",
+    "papaparse": "^5.4.1",
+    "sqlite3": "^5.1.7"
   },
   "config": {
     "forge": {
-      "packagerConfig": {},
+      "packagerConfig": {
+        "icon": "./icon.icns"
+      },
       "makers": [
         {
           "name": "@electron-forge/maker-dmg",
