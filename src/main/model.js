@@ -3,6 +3,7 @@ let fetch;
 const sqlite3 = require('sqlite3');
 const os = require('os');
 const fs = require('fs');
+const path = require('path');
 const { exit } = require('process');
 require('dotenv').config();
 
@@ -145,7 +146,7 @@ async function getActiveUsersDayByDay() {
   for (const i of db_result) {
     result.push({ x: new Date(i.date), y: i.n });
   }
-  return result
+  return JSON.stringify(result)
 }
 
 async function getActiveUsers(window, date) {
@@ -324,7 +325,7 @@ async function getEnrollmentCourses(window, enrollment_id) {
 
   //console.log(lecture_codes)
 
-  lectures_db_filename = 'insegnamenti.sqlite'
+  lectures_db_filename = path.join(__dirname, '../assets/insegnamenti.sqlite')
   lectures_db = new sqlite3.Database(lectures_db_filename);
 
   query = "SELECT min(OGC_FID), * FROM insegnamentidettagli_2020_it WHERE url is not null and materia_codice in (";

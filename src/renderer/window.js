@@ -66,7 +66,8 @@ function closeEnrolSection() {
 // Functions
 function showStatsDayByDay([requests, enrollments, active_users]) {
   requests = JSON.parse(requests);
-  enrollments = JSON.parse(enrollments)
+  enrollments = JSON.parse(enrollments);
+  active_users = JSON.parse(active_users);
   wrapped_data = {
     datasets: [
       {

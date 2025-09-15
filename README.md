@@ -47,6 +47,14 @@ npm start
 
 This will start the Electron application using `electron-forge start`.
 
+Alternatively, you can run it directly with Electron:
+
+```bash
+npm run dev
+```
+
+This runs the app directly with `electron src/main/main.js`.
+
 ### Building for Production
 
 #### For macOS (Intel and Apple Silicon)
@@ -83,15 +91,21 @@ Run `npm run make` to build for all configured platforms.
 
 ```
 UniboCalendarStats/
-├── app.js              # Main Electron process
-├── index.html          # Main UI
-├── style.css           # Application styles
-├── window.js           # Renderer process logic
-├── preload.js          # Preload script for secure communication
-├── model.js            # Data processing and database operations
+├── src/
+│   ├── main/           # Main process files
+│   │   ├── main.js     # Main Electron process entry point
+│   │   ├── model.js    # Data processing and database operations
+│   │   └── preload.js  # Preload script for secure communication
+│   ├── renderer/       # Renderer process files
+│   │   ├── index.html  # Main UI
+│   │   ├── window.js   # Renderer process logic
+│   │   └── style.css   # Application styles
+│   └── assets/         # Static assets
+│       ├── icon.icns   # Application icon
+│       └── insegnamenti.sqlite # Local database for course information
 ├── package.json        # Project configuration and dependencies
-├── icon.icns           # Application icon
-└── insegnamenti.sqlite # Local database for course information
+├── .gitignore         # Git ignore rules
+└── README.md          # This file
 ```
 
 ## Key Dependencies

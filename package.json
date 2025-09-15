@@ -4,14 +4,18 @@
   "version": "1.0.0",
   "description": "Statistical analysis and visualization of Unibo Calendar usage data",
   "repository": "electron/simple-samples",
-  "main": "app.js",
+  "main": "src/main/main.js",
   "scripts": {
     "start": "electron-forge start",
+    "dev": "electron src/main/main.js",
     "package": "electron-forge package",
     "make": "electron-forge make",
-    "build": "electron-packager . --overwrite --platform=darwin --arch=x64 --icon=./icon.icns --prune=true --out=out",
+    "build": "electron-packager . --overwrite --platform=darwin --arch=x64 --icon=./src/assets/icon.icns --prune=true --out=out",
+    "build:all": "electron-packager . --overwrite --all --icon=./src/assets/icon.icns --prune=true --out=out",
     "audit-fix": "npm audit fix",
-    "clean": "rm -rf node_modules package-lock.json && npm install"
+    "clean": "rm -rf node_modules package-lock.json && npm install",
+    "lint": "echo 'No linting configured'",
+    "test": "echo 'No tests configured'"
   },
   "license": "ISC",
   "engines": {
@@ -40,7 +44,7 @@
   "config": {
     "forge": {
       "packagerConfig": {
-        "icon": "./icon.icns"
+        "icon": "./src/assets/icon.icns"
       },
       "makers": [
         {

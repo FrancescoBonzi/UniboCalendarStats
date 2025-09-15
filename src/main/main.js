@@ -20,7 +20,7 @@ async function createWindow() {
     // Don't show the window until it ready, this prevents any white flickering
     show: false,
     resizable: true,
-    icon: path.join(__dirname, 'icon.icns'),
+    icon: path.join(__dirname, '../assets/icon.icns'),
     webPreferences: {
       nodeIntegration: false, // is default value after Electron v5
       contextIsolation: true, // protect against prototype pollution
@@ -30,7 +30,7 @@ async function createWindow() {
   });
 
   // Load app
-  window.loadFile(path.join(__dirname, "index.html"));
+  window.loadFile(path.join(__dirname, "../renderer/index.html"));
   window.once('ready-to-show', () => {
     window.show()
   })
