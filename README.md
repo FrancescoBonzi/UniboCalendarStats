@@ -2,6 +2,12 @@
 
 A desktop application built with Electron that provides statistical analysis and visualization of Unibo Calendar usage data. The app downloads data from a remote database and displays various charts and statistics about user enrollments, course popularity, and usage patterns.
 
+<table><tr><td>
+<img width="545" height="715" alt="dashboard" src="https://github.com/user-attachments/assets/6932b51e-8b0e-4c37-944c-e33f6c9c1250" />
+</td><td>
+<img width="545" height="716" alt="user" src="https://github.com/user-attachments/assets/5ff79c15-3e44-4f16-ad33-5bb1778c8cfd" />
+</td></tr></table> 
+
 ## Features
 
 - **Real-time Data Analysis**: Downloads and analyzes data from Unibo Calendar database
