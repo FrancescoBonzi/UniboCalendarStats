@@ -1,8 +1,10 @@
-const fetch = require('node-fetch');
+// Dynamic import for node-fetch v3 (ESM only)
+let fetch;
 const sqlite3 = require('sqlite3');
 const os = require('os');
 const fs = require('fs');
 const { exit } = require('process');
+require('dotenv').config();
 
 const root_url = 'http://unibocalendar.duckdns.org/'
 const db_file = 'data.db'
@@ -10,47 +12,86 @@ const db_file = 'data.db'
 let db = null;
 
 async function downloadData() {
-  let db_url = root_url + db_file;
-  let db_filename = os.tmpdir() + '/' + new Date().getTime().toString() + "_unibocal.db";
-  let db_data = await fetch(db_url).then(x => x.buffer());
-  fs.writeFileSync(db_filename, db_data);
-  db = new sqlite3.Database(db_filename);
+  try {
+    // Import node-fetch dynamically for ESM compatibility
+    if (!fetch) {
+      const { default: nodeFetch } = await import('node-fetch');
+      fetch = nodeFetch;
+    }
+    
+    if (!process.env.DB_TOKEN) {
+      throw new Error('DB_TOKEN environment variable is not set. Please check your .env file.');
+    }
+    
+    let db_url = root_url + db_file + '?token=' + process.env.DB_TOKEN;
+    let db_filename = os.tmpdir() + '/' + new Date().getTime().toString() + "_unibocal.db";
+    
+    console.log('Downloading data from:', root_url + db_file);
+    let db_data = await fetch(db_url).then(x => {
+      if (!x.ok) {
+        throw new Error(`HTTP ${x.status}: ${x.statusText}`);
+      }
+      return x.arrayBuffer();
+    });
+    
+    fs.writeFileSync(db_filename, Buffer.from(db_data));
+    db = new sqlite3.Database(db_filename);
 
-  console.log('Data Downloaded at ' + new Date())
+    console.log('Data Downloaded at ' + new Date())
+  } catch (error) {
+    console.error('Failed to download data:', error.message);
+    throw error; // Re-throw to be caught by the caller
+  }
 }
 
 async function getSummary(window) {
 
   if (db === null) {
     console.error("Error in downloading data.");
-    exit();
+    window.webContents.send("fromMain", "error", "Database not available. Please try downloading data again.");
+    return;
   }
 
-  // Call functions for client
-  await getActiveEnrollments(window)
-  await getActiveUsers(window, new Date())
-  await getStatsDayByDay(window)
-  await getNumUsersForCourses(window)
-  await getTotalEnrollments(window)
+  try {
+    // Call functions for client
+    await getActiveEnrollments(window)
+    await getActiveUsers(window, new Date())
+    await getStatsDayByDay(window)
+    await getNumUsersForCourses(window)
+    await getTotalEnrollments(window)
+  } catch (error) {
+    console.error("Error in getSummary:", error.message);
+    window.webContents.send("fromMain", "error", "Error loading data: " + error.message);
+  }
 }
 
 async function getInfoAboutEnrollment(window, enrollment_id) {
 
   if (db === null) {
     console.error("Error in downloading data.");
-    exit();
+    window.webContents.send("fromMain", "error", "Database not available. Please try downloading data again.");
+    return;
   }
 
-  // Call functions for client
-  await getEnrollmentDetails(window, enrollment_id)
-  await getEnrollmentDailyRequests(window, enrollment_id)
-  await getEnrollmentUserAgents(window, enrollment_id)
-  await getEnrollmentFirstRequestAfter4AM(window, enrollment_id)
-  getEnrollmentCourses(window, enrollment_id)
+  try {
+    // Call functions for client
+    await getEnrollmentDetails(window, enrollment_id)
+    await getEnrollmentDailyRequests(window, enrollment_id)
+    await getEnrollmentUserAgents(window, enrollment_id)
+    await getEnrollmentFirstRequestAfter4AM(window, enrollment_id)
+    getEnrollmentCourses(window, enrollment_id)
+  } catch (error) {
+    console.error("Error in getInfoAboutEnrollment:", error.message);
+    window.webContents.send("fromMain", "error", "Error loading enrollment data: " + error.message);
+  }
 }
 
 async function runQuery(q, p) {
   return new Promise((res, rej) => {
+    if (db === null) {
+      rej(new Error('Database not initialized. Please download data first.'));
+      return;
+    }
     db.all(q, p, function (e, r) {
       if (e !== null) {
         rej(e);
@@ -252,6 +293,12 @@ async function getEnrollmentCourses(window, enrollment_id) {
   url += '&calendar_view=';
 
   // Sending the request and parsing the response
+  // Import node-fetch dynamically for ESM compatibility
+  if (!fetch) {
+    const { default: nodeFetch } = await import('node-fetch');
+    fetch = nodeFetch;
+  }
+  
   let lecture_codes = await fetch(url).then(x => x.text())
     .then(function (json) {
       try {

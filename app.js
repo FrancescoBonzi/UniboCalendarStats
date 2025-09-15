@@ -44,7 +44,12 @@ async function createWindow() {
 app.whenReady().then(async () => {
 
   // Download data in advance to avoid delay when the app starts
-  await model.downloadData()
+  try {
+    await model.downloadData()
+  } catch (error) {
+    console.error('Failed to download data:', error.message)
+    // Continue with app startup even if data download fails
+  }
 
   createWindow()
 
