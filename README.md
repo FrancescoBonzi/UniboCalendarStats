@@ -1,6 +1,6 @@
-# Unibo Calendar Stats
+# UniboCalendar Stats
 
-A desktop application built with Electron that provides statistical analysis and visualization of Unibo Calendar usage data. The app downloads data from a remote database and displays various charts and statistics about user enrollments, course popularity, and usage patterns.
+A desktop application built with Electron that provides statistical analysis and visualization of UniboCalendar usage data. The app downloads data from a remote database and displays various charts and statistics about user enrollments, course popularity, and usage patterns.
 
 ⚠️ This application contains the logic to present the logs of [unibocalendar.it](https://unibocalendar.it), but this data is private and not available to everybody. ⚠️
 
@@ -12,7 +12,7 @@ A desktop application built with Electron that provides statistical analysis and
 
 ## Features
 
-- **Real-time Data Analysis**: Downloads and analyzes data from Unibo Calendar database
+- **Real-time Data Analysis**: Downloads and analyzes data from UniboCalendar database
 - **Interactive Charts**: Visualizes enrollment statistics, daily usage patterns, and course popularity
 - **User Analytics**: Shows active users, enrollment details, and user behavior patterns
 - **Cross-platform**: Works on macOS, Windows, and Linux
